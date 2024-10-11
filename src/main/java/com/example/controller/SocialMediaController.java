@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.DTO.MessageDTO;
 import com.example.entity.Account;
 import com.example.entity.Message;
 import com.example.service.AccountService;
@@ -45,12 +46,16 @@ public class SocialMediaController {
             Account newAccount = accountService.register(account);
             return new ResponseEntity<>(newAccount, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST); 
+            if (e.getMessage().equals("Username is already taken.")) {
+                return new ResponseEntity<>(HttpStatus.CONFLICT); 
+            }
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.CONFLICT); 
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
         }
-    //use object mapper like school project so no need to create DTO
+    // I created DTO :D but 
+    //interfered with last tests so put the Mapper back heree
         @PostMapping("/login") 
 public ResponseEntity<Account> login(@RequestBody String json) {
     ObjectMapper objectMapper = new ObjectMapper();
@@ -88,15 +93,24 @@ public ResponseEntity<Account> login(@RequestBody String json) {
         }
 
         @GetMapping("/messages/{messageId}")
-        public ResponseEntity<String> getMessageById(@PathVariable("messageId") Integer messageId) {
+        public ResponseEntity<MessageDTO> getMessageById(@PathVariable("messageId") Integer messageId) {
             Optional<Message> messageOpt = messageService.getMessageById(messageId);
-            
             if (messageOpt.isPresent()) {
-                return new ResponseEntity<>(messageOpt.get().getMessageText(), HttpStatus.OK);
+                Message message = messageOpt.get();
+                MessageDTO messageDTO = new MessageDTO(
+                    message.getMessageId(),
+                    message.getPostedBy(),
+                    message.getMessageText(),
+                    message.getTimePostedEpoch()
+                );
+                return new ResponseEntity<>(messageDTO, HttpStatus.OK);
             } else {
-                return new ResponseEntity<>("", HttpStatus.OK); 
+
+                return new ResponseEntity<>(HttpStatus.OK);
             }
         }
+        
+        
     
         @DeleteMapping("/messages/{messageId}")
         public ResponseEntity<Integer> deleteMessage(@PathVariable("messageId") Integer messageId) {
@@ -111,12 +125,19 @@ public ResponseEntity<Account> login(@RequestBody String json) {
         @PatchMapping("/messages/{messageId}")
         public ResponseEntity<Integer> updateMessage(@PathVariable("messageId") Integer messageId, @RequestBody String newMessageText) {
             try {
-                int rowsUpdated = messageService.updateMessageText(messageId, newMessageText);
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode jsonNode = objectMapper.readTree(newMessageText);
+                String messageText = jsonNode.get("messageText").asText();
+        
+                int rowsUpdated = messageService.updateMessageText(messageId, messageText);
                 return new ResponseEntity<>(rowsUpdated, HttpStatus.OK);
             } catch (IllegalArgumentException e) {
                 return new ResponseEntity<>(HttpStatus.BAD_REQUEST); 
+            } catch (Exception e) {
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
+        
         
         
     

@@ -60,6 +60,9 @@ public class MessageService {
         if (newText == null || newText.isEmpty()) {
             throw new IllegalArgumentException("New message text cannot be blank.");
         }
+        if (newText.length() > 255) {
+            throw new IllegalArgumentException("New message text cannot exceed 255 characters.");
+        }
         
         Optional<Message> messageOpt = messageRepository.findById(messageId);
         if (!messageOpt.isPresent()) {
@@ -71,6 +74,7 @@ public class MessageService {
         messageRepository.save(message);
         return 1; 
     }
+    
     
     
     
