@@ -11,3 +11,5 @@ public interface MessageRepository extends JpaRepository<Message, Integer> {
     
     List<Message> findByPostedBy(Integer postedBy);
 }
+
+//testing commit 
